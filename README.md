@@ -22,6 +22,13 @@ The corpus flows through these stages, each a standalone package:
 | 2. Annealing mixture | [`annealing/`](annealing/README.md) | Sec. 2.3 | ~100B-token, ~84%-RefineCode end-of-pretraining blend |
 | 3. Two-stage SFT | [`sft/`](sft/README.md) | Sec. 4 | instruction data, synthesized + decontaminated + composed |
 
+### Training ([`training/`](training/README.md))
+The loop that consumes the corpus and trains the model, in the paper's three
+phases (Sec. 3.2 / 4.3): **pretrain** (WSD warmup+stable) → **anneal** (WSD decay
+→ 1e-5) → **two-stage SFT** (cosine, response-only loss). The `nnx.jit` train step
+does AdamW on the params plus the aux-loss-free MoE router-bias update; checkpoints
+hand weights from one phase to the next.
+
 [`synth_common/`](synth_common/) holds the shared synthesis primitives (pluggable
 teacher model, real code-execution/test validation, token counting, n-gram
 overlap) used by stages 2 and 3.
@@ -37,6 +44,9 @@ python -m data_pipeline.cli run --input sample_data/raw_code.jsonl --output samp
 
 # Stages 2 & 3 — annealing mixture + two-stage SFT data (offline, MockTeacher)
 python scripts/run_post_training_demo.py
+
+# Training — pretrain → anneal → SFT → generate (tiny CPU model, ~20s)
+python scripts/run_training_demo.py
 ```
 
 Stages 1–3 run **offline** on synthetic sample data. To go real:

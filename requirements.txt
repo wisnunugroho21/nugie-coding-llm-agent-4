@@ -1,7 +1,14 @@
-# Core pipeline — the pure-Python stages run on the stdlib alone.
+# Core pipeline — the pure-Python data stages run on the stdlib alone.
 # numpy accelerates the MinHash signature computation (fuzzy dedup); without it
 # the code transparently falls back to a slower pure-Python path.
 numpy>=1.23
+
+# Model + training loop (kimi_linear_gdn2.py, gated_deltanet_2/, training/).
+# Only needed to run the model / training — the data pipeline stages don't import
+# these. jax[cpu] runs the demo on a laptop; install a CUDA jax build for GPU.
+jax>=0.4.30
+flax>=0.10          # provides flax.nnx
+optax>=0.2
 
 # Optional: enables the real fastText classifier for web code-data recall
 # (data_pipeline/web/fasttext_recall.py). Without it, a built-in bag-of-keywords
