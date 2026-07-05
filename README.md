@@ -27,7 +27,10 @@ The loop that consumes the corpus and trains the model, in the paper's three
 phases (Sec. 3.2 / 4.3): **pretrain** (WSD warmup+stable) → **anneal** (WSD decay
 → 1e-5) → **two-stage SFT** (cosine, response-only loss). The `nnx.jit` train step
 does AdamW on the params plus the aux-loss-free MoE router-bias update; checkpoints
-hand weights from one phase to the next.
+hand weights from one phase to the next. Ready-made **device presets** (`--device
+m1|t4|t4x2|h200`) size the model, dtype (bf16), gradient accumulation, and
+multi-GPU data parallelism (`nnx.pmap`) to each target — see the table in the
+[training README](training/README.md).
 
 ### Evaluation ([`evaluation/`](evaluation/README.md))
 **HumanEval / MBPP Pass@k** (Sec. 5): sample completions, assemble runnable

@@ -38,10 +38,48 @@ padding weighted 0).
 Paper values live in [config.py](config.py) (`PRETRAIN_PRESET`, `STAGE1_PRESET`,
 `STAGE2_PRESET`).
 
+## Device presets ([devices.py](devices.py))
+
+Full configs sized to real hardware — model dims + compute dtype + batch +
+gradient accumulation + data parallelism. Pass `--device` to any phase command;
+it overrides the model/batch/seq-len (the phase still supplies the paper LR/schedule).
+
+| Device | dtype | model | seq | per-dev batch × accum (× GPUs) | params |
+|--------|-------|-------|-----|-------------------------------|--------|
+| `m1` (M1 CPU, smoke) | fp32 | d=256, L=4, E=8 | 256 | 2 × 1 | 8.9M |
+| `t4` (Colab, 16GB) | bf16 | d=512, L=8, E=8 | 1024 | 4 × 8 | 68.4M |
+| `t4x2` (Kaggle, 2×16GB) | bf16 | d=512, L=8, E=8 | 1024 | 4 × 8 × **2 GPUs** (data-parallel) | 68.4M |
+| `h200` (141GB) | bf16 | d=1536, L=16, E=16, top-4 | 4096 | 8 × 4 | ~1.3B |
+
+```bash
+python -m training.devices          # print the table + param counts
+```
+
+- **bf16** compute with fp32 master weights + Adam state (`compute_dtype` on the
+  model); the numerically sensitive parts (GDN-2 core, RMSNorm, router, loss) stay
+  fp32.
+- **Gradient accumulation** (`optax.MultiSteps`) reaches a sane global batch on
+  16GB cards without OOM.
+- **Data parallelism** (`t4x2`) replicates params and shards the batch across all
+  local GPUs via `nnx.pmap`, all-reducing gradients + expert load each step. It
+  degrades to single-device automatically when only one GPU is visible.
+- All presets use the **byte-level tokenizer (vocab 256)** so they run as-is; for a
+  real run raise `vocab_size` to your tokenizer (e.g. OpenCoder's 96,640).
+  Preset `steps` are short placeholders — scale up with `--steps`.
+
+```bash
+# example: full three-phase run on a Colab T4
+python -m training.cli pretrain --device t4 --data refined.jsonl --steps 20000 --save ck/pre.pkl
+python -m training.cli anneal   --device t4 --data annealing.jsonl --init ck/pre.pkl --save ck/ann.pkl
+python -m training.cli sft --stage 1 --device t4 --data sft1.jsonl --init ck/ann.pkl --save ck/sft1.pkl
+
+# Kaggle 2×T4 — same commands with --device t4x2 (data-parallel across both GPUs)
+```
+
 ## Usage
 
 ```bash
-# 1. pretrain on the cleaned code corpus
+# 1. pretrain on the cleaned code corpus (manual sizing, no preset)
 python -m training.cli pretrain --data sample_data/refined.jsonl \
     --steps 200 --save ckpt/pretrain.pkl
 
@@ -88,11 +126,13 @@ routing. Optimizer state is not saved (each phase uses its own optimizer).
   response is truncated away and the batch contributes zero loss.
 
 ## Scaling up
-Swap `demo_model_config()` for a full `KimiLinearConfig`, plug in OpenCoder's real
-tokenizer (vocab 96,640) via any `encode`/`decode`/`vocab_size` object, point the
-data paths at the real corpora, and raise `--steps` / `--batch-size`. The step,
-schedules, checkpointing, and router-bias logic are unchanged. For multi-device
-data parallelism, shard the batch and wrap the step with `jax` mesh/sharding.
+Use a bigger `--device` preset (or edit [devices.py](devices.py)), plug in
+OpenCoder's real tokenizer (vocab 96,640) via any `encode`/`decode`/`vocab_size`
+object, point the data paths at the real corpora, and raise `--steps`. The step,
+schedules, checkpointing, router-bias, gradient-accumulation, and data-parallel
+logic are unchanged. Beyond single-node data parallelism (many GPUs / multi-host),
+initialize `jax.distributed` and keep the same `--device t4x2`-style `nnx.pmap`
+step, or move to tensor/expert parallelism for models too large to replicate.
 
 ## Tests
 

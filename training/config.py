@@ -66,8 +66,10 @@ class TrainConfig:
     model: KimiLinearConfig = dataclasses.field(default_factory=demo_model_config)
 
     seq_len: int = 128             # must be a multiple of model.gdn_chunk_size
-    batch_size: int = 8
+    batch_size: int = 8            # per-step global batch fed to fit (before accumulation)
     steps: int = 50
+    grad_accum: int = 1            # microbatches per optimizer step (optax.MultiSteps)
+    data_parallel: bool = False    # replicate params, shard batch across local devices (nnx.pmap)
 
     # Optimizer.
     weight_decay: float = 0.1

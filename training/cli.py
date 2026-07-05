@@ -24,21 +24,36 @@ from __future__ import annotations
 import argparse
 
 from .config import STAGE1_PRESET, STAGE2_PRESET, TrainConfig
+from .devices import build_config
 from . import run_phase
 
 
 def _common(ap: argparse.ArgumentParser) -> None:
     ap.add_argument("--data", nargs="+", required=True, help="JSONL path(s)")
+    ap.add_argument("--device", choices=["m1", "t4", "t4x2", "h200"], default=None,
+                    help="hardware preset (model size, dtype, batch, parallelism); "
+                         "overrides --batch-size/--seq-len")
     ap.add_argument("--init", default=None, help="warm-start checkpoint")
     ap.add_argument("--save", default=None, help="output checkpoint path")
-    ap.add_argument("--steps", type=int, default=100)
+    ap.add_argument("--steps", type=int, default=None, help="override preset/default steps")
     ap.add_argument("--batch-size", type=int, default=8)
     ap.add_argument("--seq-len", type=int, default=128)
     ap.add_argument("--log-every", type=int, default=10)
     ap.add_argument("--seed", type=int, default=0)
 
 
+def _run_device(args: argparse.Namespace, phase: str, stage: int = 1) -> int:
+    cfg = build_config(
+        args.device, phase, args.data, init_from=args.init, save_to=args.save,
+        steps=args.steps, stage=stage, log_every=args.log_every)
+    run_phase(cfg)
+    return 0
+
+
 def _cmd_pretrain(a: argparse.Namespace) -> int:
+    if a.device:
+        return _run_device(a, "pretrain")
+    a.steps = a.steps or 100
     warmup = min(a.warmup, max(a.steps // 10, 1))
     cfg = TrainConfig(
         phase="pretrain", data_paths=a.data, steps=a.steps, batch_size=a.batch_size,
@@ -51,6 +66,9 @@ def _cmd_pretrain(a: argparse.Namespace) -> int:
 
 
 def _cmd_anneal(a: argparse.Namespace) -> int:
+    if a.device:
+        return _run_device(a, "anneal")
+    a.steps = a.steps or 100
     # WSD decay region: no warmup/stable, decay peak_lr -> end_lr over all steps.
     cfg = TrainConfig(
         phase="anneal", data_paths=a.data, steps=a.steps, batch_size=a.batch_size,
@@ -63,6 +81,9 @@ def _cmd_anneal(a: argparse.Namespace) -> int:
 
 
 def _cmd_sft(a: argparse.Namespace) -> int:
+    if a.device:
+        return _run_device(a, "sft", stage=a.stage)
+    a.steps = a.steps or 100
     preset = STAGE1_PRESET if a.stage == 1 else STAGE2_PRESET
     lr = a.lr if a.lr is not None else preset.learning_rate
     cfg = TrainConfig(

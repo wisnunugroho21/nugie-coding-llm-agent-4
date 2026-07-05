@@ -14,6 +14,7 @@ plus the aux-loss-free MoE router-bias update the model exposes via `group_sizes
 from __future__ import annotations
 
 import flax.nnx as nnx
+import optax
 
 from kimi_linear_gdn2 import KimiLinear
 
@@ -60,8 +61,11 @@ def run_phase(cfg: TrainConfig) -> KimiLinear:
         raise ValueError(f"unknown phase {cfg.phase!r} (pretrain|anneal|sft)")
 
     tx = build_tx(schedule, cfg.weight_decay, cfg.b1, cfg.b2, cfg.clip_norm)
+    if cfg.grad_accum > 1:                      # accumulate grads over microbatches
+        tx = optax.MultiSteps(tx, cfg.grad_accum).gradient_transformation()
     fit(model, tx, batches, cfg.steps, bias_lr=cfg.bias_lr, schedule=schedule,
-        log_every=cfg.log_every, label=cfg.phase)
+        log_every=cfg.log_every, label=cfg.phase,
+        data_parallel=cfg.data_parallel, grad_accum=cfg.grad_accum)
 
     if cfg.save_to:
         save_model(model, cfg.save_to)
