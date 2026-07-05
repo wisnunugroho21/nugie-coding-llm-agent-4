@@ -1,0 +1,6 @@
+{"content": "How do I reverse a list in Python? Use lst[::-1] or reversed(lst). def reverse(lst): return lst[::-1]. This returns a new list.", "path": "seed", "label": 1}
+{"content": "Traceback (most recent call last): File main.py line 3, TypeError: unsupported operand. Fix by casting int(x) before adding.", "path": "seed", "label": 1}
+{"content": "Install via pip install requests, then import requests and call requests.get(url). Handle the response status_code in your function.", "path": "seed", "label": 1}
+{"content": "The weather today is sunny with a gentle breeze. Perfect for a walk in the park with friends and family this afternoon.", "path": "seed", "label": 0}
+{"content": "Our restaurant serves fresh pasta and wood-fired pizza. Book a table for dinner and enjoy the cozy atmosphere downtown.", "path": "seed", "label": 0}
+{"content": "The history of the Roman empire spans many centuries of conquest, culture, and political change across the Mediterranean world.", "path": "seed", "label": 0}

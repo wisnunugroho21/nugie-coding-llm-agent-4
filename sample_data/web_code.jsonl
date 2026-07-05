@@ -1,0 +1,2 @@
+{"content": "def quicksort(a): return a if len(a)<2 else quicksort([x for x in a[1:] if x<a[0]])+[a[0]]", "path": "web/post1.html", "language": "", "category": "", "repo_name": "", "stars": 0, "commit_time": 1783254395.383456, "source": "web", "doc_id": "", "signals": {}, "filtered_by": [], "meta": {"code_prob": 0.6667}}
+{"content": "numpy==1.26\nrequests>=2.31\npandas", "path": "project/requirements.txt", "language": "", "category": "", "repo_name": "", "stars": 0, "commit_time": 1783254395.383456, "source": "web", "doc_id": "", "signals": {}, "filtered_by": [], "meta": {}}

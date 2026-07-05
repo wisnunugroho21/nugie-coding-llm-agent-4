@@ -1,0 +1,3 @@
+{"content": "def quicksort(a): return a if len(a)<2 else quicksort([x for x in a[1:] if x<a[0]])+[a[0]]", "path": "web/post1.html", "stars": 0, "commit_time": 1783254497.9890938, "source": "web"}
+{"content": "Best hiking trails near the coast for a relaxing weekend getaway.", "path": "web/post2.html", "stars": 0, "commit_time": 1783254497.9890938, "source": "web"}
+{"content": "numpy==1.26\nrequests>=2.31\npandas", "path": "project/requirements.txt", "stars": 0, "commit_time": 1783254497.9890938, "source": "web"}
