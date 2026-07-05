@@ -70,9 +70,20 @@ class FastTextRecaller:
 
     # --- training ----------------------------------------------------------
     def train(self, examples: list[tuple[str, int]]) -> "FastTextRecaller":
-        """`examples`: list of (text, label) with label 1 == code-related."""
+        """`examples`: list of (text, label) with label 1 == code-related.
+
+        Prefers a real fastText model, but if the installed fastText is broken at
+        runtime (e.g. fastText 0.9.2 is incompatible with numpy>=2, whose
+        `predict` raises), we transparently fall back to the pure-Python scorer so
+        the pipeline still runs."""
         if _fasttext is not None:
-            self._train_fasttext(examples)
+            try:
+                self._train_fasttext(examples)
+                # Probe: a broken fastText/numpy combo raises here, not at train.
+                self._model.predict("probe", k=1)
+            except Exception:
+                self._model = None
+                self._train_fallback(examples)
         else:
             self._train_fallback(examples)
         return self
