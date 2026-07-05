@@ -117,6 +117,7 @@ def build_config(
     steps: int | None = None,
     stage: int = 1,
     log_every: int = 20,
+    tokenizer_path: str | None = None,
 ) -> TrainConfig:
     """Assemble a full TrainConfig for a device + phase (paper LR/schedule)."""
     p = get_preset(device)
@@ -150,6 +151,7 @@ def build_config(
         seq_len=p.seq_len, batch_size=batch_size, steps=n_steps,
         grad_accum=p.grad_accum, data_parallel=p.data_parallel,
         init_from=init_from, save_to=save_to, log_every=log_every,
+        tokenizer_path=tokenizer_path,
         **sched,
     )
 

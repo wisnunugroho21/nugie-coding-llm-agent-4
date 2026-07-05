@@ -90,6 +90,7 @@ class TrainConfig:
     save_to: str | None = None
     seed: int = 0
     data_field: str = "content"    # pretrain/anneal doc text field
+    tokenizer_path: str | None = None  # BPE tokenizer.json; None -> byte tokenizer
     system: str = "You are a helpful programming assistant."
     log_every: int = 10
 

@@ -9,6 +9,9 @@ numpy>=1.23
 jax>=0.4.30
 flax>=0.10          # provides flax.nnx
 optax>=0.2
+# Real BPE tokenizer (training/tokenizer.py BPETokenizer + scripts/train_tokenizer.py).
+# The byte-level tokenizer needs nothing; this is only for training/loading a BPE vocab.
+tokenizers>=0.15
 
 # Optional: enables the real fastText classifier for web code-data recall
 # (data_pipeline/web/fasttext_recall.py). Without it, a built-in bag-of-keywords

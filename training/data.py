@@ -41,11 +41,15 @@ def _read_jsonl(path: str) -> Iterator[dict]:
 #  Pretraining / annealing
 # --------------------------------------------------------------------------- #
 def _byte_stream(paths: list[str], tok, field: str) -> Iterator[int]:
+    # Separate documents with the tokenizer's end-of-text token if it has one
+    # (a real BPE tokenizer), else a newline (byte tokenizer).
+    eos = getattr(tok, "eos_id", None)
+    sep = [eos] if eos is not None else tok.encode("\n")
     for p in paths:
         for rec in _read_jsonl(p):
             text = rec.get(field) or rec.get("text") or ""
             yield from tok.encode(text)
-            yield from tok.encode("\n")   # soft document separator
+            yield from sep
 
 
 def pretrain_batches(
@@ -86,7 +90,7 @@ def sft_batches(
     seq_len: int,
     batch_size: int,
     system: str = DEFAULT_SYSTEM,
-    pad_id: int = 0,
+    pad_id: int | None = None,
 ) -> Iterator[tuple[np.ndarray, np.ndarray]]:
     """Yield (input_ids[B,L] int32, loss_weights[B,L] float32) forever, padded to
     seq_len with response-only loss masking.
@@ -94,6 +98,8 @@ def sft_batches(
     NOTE: size `seq_len` to hold prompt + response. If the prompt alone exceeds
     seq_len the response is truncated away, every token is masked, and the batch
     contributes zero loss / zero gradient."""
+    if pad_id is None:
+        pad_id = getattr(tok, "pad_id", 0) or 0
     while True:  # cycle epochs
         bi: list[list[int]] = []
         bm: list[list[float]] = []

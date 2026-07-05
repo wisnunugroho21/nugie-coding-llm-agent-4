@@ -39,12 +39,16 @@ def _build_generator(args: argparse.Namespace, problems):
         import flax.nnx as nnx
 
         from training import KimiLinear, demo_model_config, load_model
-        from training.tokenizer import ByteTokenizer
+        from training.tokenizer import BPETokenizer, ByteTokenizer
         from .generator import ModelGenerator
 
-        model = KimiLinear(demo_model_config(), rngs=nnx.Rngs(0))
+        tok = BPETokenizer.load(args.tokenizer) if args.tokenizer else ByteTokenizer()
+        model_cfg = demo_model_config()
+        if args.tokenizer:
+            model_cfg.vocab_size = tok.vocab_size   # must match the checkpoint's head
+        model = KimiLinear(model_cfg, rngs=nnx.Rngs(0))
         load_model(model, args.model)
-        return ModelGenerator(model, ByteTokenizer(), seed=args.seed)
+        return ModelGenerator(model, tok, seed=args.seed)
     if args.claude:
         from synth_common import ClaudeTeacher
 
@@ -60,6 +64,7 @@ def main(argv: list[str] | None = None) -> int:
     # generators
     ap.add_argument("--oracle", action="store_true", help="reference solutions (self-test)")
     ap.add_argument("--model", default=None, help="KimiLinear checkpoint to evaluate")
+    ap.add_argument("--tokenizer", default=None, help="BPE tokenizer.json (match the checkpoint)")
     ap.add_argument("--claude", action="store_true", help="evaluate a Claude teacher")
     ap.add_argument("--claude-model", default="claude-opus-4-8")
     # eval params

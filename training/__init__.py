@@ -24,11 +24,11 @@ from .data import pretrain_batches, sft_batches
 from .loop import fit, make_train_step
 from .optimizer import build_tx
 from .schedule import cosine_schedule, wsd_schedule
-from .tokenizer import ByteTokenizer
+from .tokenizer import BPETokenizer, ByteTokenizer
 
 __all__ = [
     "TrainConfig", "run_phase", "demo_model_config",
-    "KimiLinear", "ByteTokenizer",
+    "KimiLinear", "ByteTokenizer", "BPETokenizer",
     "fit", "make_train_step", "build_tx",
     "wsd_schedule", "cosine_schedule",
     "save_model", "load_model",
@@ -38,7 +38,14 @@ __all__ = [
 
 def run_phase(cfg: TrainConfig) -> KimiLinear:
     """Build/warm-start the model, run one training phase, optionally checkpoint."""
-    tok = ByteTokenizer()
+    if cfg.tokenizer_path:
+        tok = BPETokenizer.load(cfg.tokenizer_path)
+        if cfg.model.vocab_size != tok.vocab_size:
+            print(f"[{cfg.phase}] setting model vocab_size {cfg.model.vocab_size} "
+                  f"-> tokenizer vocab_size {tok.vocab_size}")
+            cfg.model.vocab_size = tok.vocab_size   # model head must match the tokenizer
+    else:
+        tok = ByteTokenizer()
     model = KimiLinear(cfg.model, rngs=nnx.Rngs(cfg.seed))
     if cfg.init_from:
         load_model(model, cfg.init_from)

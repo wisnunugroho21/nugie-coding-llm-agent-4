@@ -57,6 +57,10 @@ python scripts/run_post_training_demo.py
 # Training — pretrain → anneal → SFT → generate (tiny CPU model, ~20s)
 python scripts/run_training_demo.py
 
+# Real BPE tokenizer — train a vocab from the corpus, then train with it
+python scripts/train_tokenizer.py --data sample_data/refined.jsonl --vocab-size 4000 --output tok.json
+python -m training.cli pretrain --device t4 --data refined.jsonl --tokenizer tok.json
+
 # Evaluation — HumanEval/MBPP Pass@1 harness self-test (oracle -> 1.000)
 python -m evaluation.cli --benchmark humaneval --oracle
 ```

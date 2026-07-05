@@ -105,6 +105,28 @@ run_phase(TrainConfig(phase="pretrain", data_paths=["sample_data/refined.jsonl"]
 End-to-end demo (data stages → all three phases → a greedy sample):
 [scripts/run_training_demo.py](../scripts/run_training_demo.py).
 
+## Tokenizer ([tokenizer.py](tokenizer.py))
+
+Two options, both exposing `encode`/`decode`/`vocab_size` (+ optional `eos_id`/`pad_id`):
+
+- **`ByteTokenizer`** — vocab 256, zero-dependency; the default (matches the tiny
+  model, runs anywhere).
+- **`BPETokenizer`** — a real **byte-level BPE**, trained from the corpus (our own
+  vocab, from scratch), with the chat special tokens (`<|system|>` … `<|end|>`) and
+  `<|endoftext|>`/`<|pad|>`. Handles arbitrary bytes (no UNK), saved to one
+  `tokenizer.json`.
+
+```bash
+# train a BPE vocab from the corpus (use 32000 / 96640 on the real corpus)
+python scripts/train_tokenizer.py --data refined.jsonl --vocab-size 32000 --output tok.json
+
+# train with it — the model's vocab_size is set from the tokenizer automatically
+python -m training.cli pretrain --device t4 --data refined.jsonl --tokenizer tok.json --save ck/pre.pkl
+```
+
+Pass the same `--tokenizer` to every phase. Documents are separated by the
+tokenizer's `<|endoftext|>`; SFT padding uses its `<|pad|>`.
+
 ## Data formats
 - **pretrain / anneal**: JSONL with a `content` (or `text`) field — the cleaned
   corpus / annealing mixture. Documents are concatenated and packed into `seq_len`
@@ -126,9 +148,9 @@ routing. Optimizer state is not saved (each phase uses its own optimizer).
   response is truncated away and the batch contributes zero loss.
 
 ## Scaling up
-Use a bigger `--device` preset (or edit [devices.py](devices.py)), plug in
-OpenCoder's real tokenizer (vocab 96,640) via any `encode`/`decode`/`vocab_size`
-object, point the data paths at the real corpora, and raise `--steps`. The step,
+Use a bigger `--device` preset (or edit [devices.py](devices.py)), train a larger
+BPE vocab (`--vocab-size 32000`/`96640`) and pass it with `--tokenizer`, point the
+data paths at the real corpora, and raise `--steps`. The step,
 schedules, checkpointing, router-bias, gradient-accumulation, and data-parallel
 logic are unchanged. Beyond single-node data parallelism (many GPUs / multi-host),
 initialize `jax.distributed` and keep the same `--device t4x2`-style `nnx.pmap`

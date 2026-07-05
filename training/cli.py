@@ -33,6 +33,9 @@ def _common(ap: argparse.ArgumentParser) -> None:
     ap.add_argument("--device", choices=["m1", "t4", "t4x2", "h200"], default=None,
                     help="hardware preset (model size, dtype, batch, parallelism); "
                          "overrides --batch-size/--seq-len")
+    ap.add_argument("--tokenizer", default=None,
+                    help="BPE tokenizer.json (train with scripts/train_tokenizer.py); "
+                         "default is the byte-level tokenizer")
     ap.add_argument("--init", default=None, help="warm-start checkpoint")
     ap.add_argument("--save", default=None, help="output checkpoint path")
     ap.add_argument("--steps", type=int, default=None, help="override preset/default steps")
@@ -45,7 +48,8 @@ def _common(ap: argparse.ArgumentParser) -> None:
 def _run_device(args: argparse.Namespace, phase: str, stage: int = 1) -> int:
     cfg = build_config(
         args.device, phase, args.data, init_from=args.init, save_to=args.save,
-        steps=args.steps, stage=stage, log_every=args.log_every)
+        steps=args.steps, stage=stage, log_every=args.log_every,
+        tokenizer_path=args.tokenizer)
     run_phase(cfg)
     return 0
 
@@ -59,7 +63,7 @@ def _cmd_pretrain(a: argparse.Namespace) -> int:
         phase="pretrain", data_paths=a.data, steps=a.steps, batch_size=a.batch_size,
         seq_len=a.seq_len, init_from=a.init, save_to=a.save, seed=a.seed,
         peak_lr=a.peak_lr, warmup_steps=warmup, stable_steps=max(a.steps - warmup, 0),
-        decay_steps=0, log_every=a.log_every,
+        decay_steps=0, log_every=a.log_every, tokenizer_path=a.tokenizer,
     )
     run_phase(cfg)
     return 0
@@ -74,7 +78,7 @@ def _cmd_anneal(a: argparse.Namespace) -> int:
         phase="anneal", data_paths=a.data, steps=a.steps, batch_size=a.batch_size,
         seq_len=a.seq_len, init_from=a.init, save_to=a.save, seed=a.seed,
         peak_lr=a.peak_lr, end_lr=a.end_lr, warmup_steps=0, stable_steps=0,
-        decay_steps=a.steps, log_every=a.log_every,
+        decay_steps=a.steps, log_every=a.log_every, tokenizer_path=a.tokenizer,
     )
     run_phase(cfg)
     return 0
@@ -90,7 +94,7 @@ def _cmd_sft(a: argparse.Namespace) -> int:
         phase="sft", data_paths=a.data, steps=a.steps, batch_size=a.batch_size,
         seq_len=a.seq_len, init_from=a.init, save_to=a.save, seed=a.seed,
         peak_lr=lr, warmup_steps=min(preset.warmup_steps, max(a.steps // 10, 1)),
-        decay_steps=a.steps, log_every=a.log_every,
+        decay_steps=a.steps, log_every=a.log_every, tokenizer_path=a.tokenizer,
     )
     print(f"[sft] stage {a.stage}: lr={lr} (paper: {preset.epochs} epochs, "
           f"batch {preset.batch_size})")
