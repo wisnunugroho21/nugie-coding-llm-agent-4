@@ -48,8 +48,30 @@ stages, crep = compose_two_stage(group_by_source(clean), cfg)
 train_records = list(format_dataset(stages[1]))                  # -> tokenize & train
 ```
 
-Synthesizers take a `TeacherModel`; the default offline `MockTeacher` emits
+## Teacher backends
+
+Synthesizers take a `TeacherModel`. The default offline `MockTeacher` emits
 runnable code so the full synthesize → execute → validate flow works with no API.
-Swap in a real client (see [synth_common/teacher.py](../synth_common/teacher.py)).
-See [scripts/run_post_training_demo.py](../scripts/run_post_training_demo.py) for
-an end-to-end run.
+For real data, swap in a production backend from
+[synth_common/clients.py](../synth_common/clients.py):
+
+| Backend | Use | Notes |
+|---------|-----|-------|
+| `ClaudeTeacher` | **Recommended** — Anthropic SDK, default `claude-opus-4-8` | Adaptive thinking on; does **not** forward `temperature` (Opus 4.8 rejects sampling params); SDK auto-retries. Creds via `ANTHROPIC_API_KEY` or `ant auth login`. |
+| `OpenAICompatibleTeacher` | Local **vLLM** / any OpenAI-compatible server | `base_url=http://localhost:8000/v1`; forwards `temperature` (open models accept it). |
+| `CachingTeacher` | Wrap either one | On-disk cache keyed by (model, prompt, temp, max_tokens) — dedup + resumability for large runs. |
+
+```python
+from synth_common import build_teacher, ClaudeTeacher
+teacher = build_teacher("claude", cache_dir=".teacher_cache")   # or ClaudeTeacher(...)
+edu = list(synthesize_educational(code_seeds, cfg.educational, teacher))
+```
+
+The end-to-end demo takes a backend flag:
+
+```bash
+python scripts/run_post_training_demo.py --teacher claude --cache-dir .teacher_cache
+python scripts/run_post_training_demo.py --teacher vllm --model Qwen2.5-Coder-7B --base-url http://localhost:8000/v1
+```
+
+See [scripts/run_post_training_demo.py](../scripts/run_post_training_demo.py).

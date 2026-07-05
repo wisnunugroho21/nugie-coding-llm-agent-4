@@ -13,10 +13,11 @@ for KDA, plus a complete **OpenCoder / RefineCode** data stack
 - [`multi_latent_attention/`](multi_latent_attention/) — NoPE MLA + MoE FFN.
 
 ### Data (the OpenCoder cookbook, end to end)
-The corpus flows through three stages, each a standalone package:
+The corpus flows through these stages, each a standalone package:
 
 | Stage | Package | Paper | Output |
 |-------|---------|-------|--------|
+| 0. Ingestion | [`data_ingestion/`](data_ingestion/README.md) | Sec. 2.1 | streams **The Stack v2** (HF metadata + SWH S3 contents) → `CodeDocument` JSONL |
 | 1. Pretraining corpus | [`data_pipeline/`](data_pipeline/README.md) | Sec. 2.1 / App. A | cleaned, deduped, filtered code (RefineCode) |
 | 2. Annealing mixture | [`annealing/`](annealing/README.md) | Sec. 2.3 | ~100B-token, ~84%-RefineCode end-of-pretraining blend |
 | 3. Two-stage SFT | [`sft/`](sft/README.md) | Sec. 4 | instruction data, synthesized + decontaminated + composed |
@@ -38,10 +39,26 @@ python -m data_pipeline.cli run --input sample_data/raw_code.jsonl --output samp
 python scripts/run_post_training_demo.py
 ```
 
-All data stages run **offline** on synthetic sample data. To go real: point stage
-1 at The Stack v2 / GitHub (an ingestion loader that emits the JSONL schema), and
-swap the offline `MockTeacher` for a real client (Claude via the Anthropic SDK, or
-a local vLLM server) in stages 2–3 — see [`synth_common/teacher.py`](synth_common/teacher.py).
+Stages 1–3 run **offline** on synthetic sample data. To go real:
+
+```bash
+# Stage 0 — ingest The Stack v2 (needs HF token + AWS creds; see data_ingestion/README.md)
+pip install datasets boto3 "smart_open[s3]"
+export HF_TOKEN=hf_...   AWS_ACCESS_KEY_ID=...   AWS_SECRET_ACCESS_KEY=...
+python -m data_ingestion.cli ingest --languages Python --limit 50000 \
+    --output raw_code.jsonl --run-pipeline --refined-output refined.jsonl
+```
+
+For real synthesized data in stages 2–3, swap the offline `MockTeacher` for a
+real teacher backend ([`synth_common/clients.py`](synth_common/clients.py)):
+
+```bash
+pip install anthropic                    # ClaudeTeacher (recommended, Opus 4.8)
+export ANTHROPIC_API_KEY=sk-ant-...       # or: ant auth login
+python scripts/run_post_training_demo.py --teacher claude --cache-dir .teacher_cache
+# or a local vLLM server:
+python scripts/run_post_training_demo.py --teacher vllm --model <served-model> --base-url http://localhost:8000/v1
+```
 
 ## Tests
 

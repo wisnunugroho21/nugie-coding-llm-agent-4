@@ -9,6 +9,7 @@ synth_common — shared building blocks for OpenCoder's data-synthesis stages
   * prompts.py     — shared, paper-faithful prompt templates
 """
 
+from .clients import CachingTeacher, ClaudeTeacher, OpenAICompatibleTeacher, build_teacher
 from .execution import ExecResult, run_python, validate_with_tests
 from .ngram import build_banned_ngrams, has_overlap, ngrams
 from .teacher import MockTeacher, TeacherModel, extract_code_blocks
@@ -16,6 +17,7 @@ from .token_count import TokenCounter, estimate_tokens
 
 __all__ = [
     "TeacherModel", "MockTeacher", "extract_code_blocks",
+    "ClaudeTeacher", "OpenAICompatibleTeacher", "CachingTeacher", "build_teacher",
     "ExecResult", "run_python", "validate_with_tests",
     "estimate_tokens", "TokenCounter",
     "ngrams", "build_banned_ngrams", "has_overlap",

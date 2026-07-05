@@ -35,7 +35,7 @@ from sft import (
     synthesize_package,
     wrap_examples,
 )
-from synth_common.teacher import MockTeacher
+from synth_common import build_teacher
 
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 REFINED = os.path.join(HERE, "sample_data", "refined.jsonl")
@@ -54,6 +54,16 @@ DIALOGUES = [
 
 
 def main() -> None:
+    import argparse
+
+    ap = argparse.ArgumentParser(description="OpenCoder post-training demo")
+    ap.add_argument("--teacher", choices=["mock", "claude", "vllm"], default="mock",
+                    help="mock=offline (default); claude=Anthropic SDK; vllm=OpenAI-compatible server")
+    ap.add_argument("--model", default=None, help="model id/name for claude|vllm")
+    ap.add_argument("--base-url", default=None, help="vllm server base URL")
+    ap.add_argument("--cache-dir", default=None, help="cache teacher responses to this dir")
+    args = ap.parse_args()
+
     if not os.path.exists(REFINED):
         raise SystemExit(f"Missing {REFINED}. Run the data_pipeline first (see module docstring).")
 
@@ -63,7 +73,10 @@ def main() -> None:
         content="def solve():\n    # leetcode dynamic programming solution\n    return 42\n",
         path="algo/leetcode_dp.py", language="Python", category="code"))
 
-    teacher = MockTeacher()
+    teacher = build_teacher(args.teacher, model=args.model,
+                            base_url=args.base_url, cache_dir=args.cache_dir)
+    print(f"Teacher backend: {args.teacher}"
+          + (f" ({args.model})" if args.model else ""))
 
     # ---------------------------------------------------------------- annealing
     print("=" * 70, "\nANNEALING (Sec. 2.3)\n", "=" * 70, sep="")

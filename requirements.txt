@@ -6,4 +6,21 @@ numpy>=1.23
 # Optional: enables the real fastText classifier for web code-data recall
 # (data_pipeline/web/fasttext_recall.py). Without it, a built-in bag-of-keywords
 # scorer is used instead, so this dependency is not required to run the pipeline.
+# NOTE: fasttext 0.9.2 is incompatible with numpy>=2 (its predict() raises); the
+# recaller probes and falls back to the pure-Python scorer if so.
 # fasttext>=0.9.2
+
+# Optional: The Stack v2 ingestion (data_ingestion/). `datasets` streams the HF
+# metadata; boto3 + smart_open fetch file contents from Software Heritage S3.
+# Not needed to import or unit-test the package (backends are injectable).
+# datasets>=2.14
+# huggingface_hub>=0.20
+# boto3>=1.28
+# smart_open[s3]>=6.0
+
+# Optional: real TeacherModel backends for the annealing/SFT synthesis
+# (synth_common/clients.py). anthropic = ClaudeTeacher (recommended, Opus 4.8);
+# openai = OpenAICompatibleTeacher for a local vLLM server. Not needed for the
+# offline MockTeacher, nor to unit-test the clients (the SDK client is injectable).
+# anthropic>=0.40
+# openai>=1.40      # only for the vLLM / OpenAI-compatible backend
