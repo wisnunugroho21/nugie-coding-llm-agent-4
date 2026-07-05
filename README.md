@@ -29,6 +29,12 @@ phases (Sec. 3.2 / 4.3): **pretrain** (WSD warmup+stable) → **anneal** (WSD de
 does AdamW on the params plus the aux-loss-free MoE router-bias update; checkpoints
 hand weights from one phase to the next.
 
+### Evaluation ([`evaluation/`](evaluation/README.md))
+**HumanEval / MBPP Pass@k** (Sec. 5): sample completions, assemble runnable
+programs, execute in the sandbox, and score with the unbiased pass@k estimator.
+An oracle generator scores pass@1 = 1.000 (harness self-test); plug in the trained
+checkpoint or a Claude teacher to score a real model.
+
 [`synth_common/`](synth_common/) holds the shared synthesis primitives (pluggable
 teacher model, real code-execution/test validation, token counting, n-gram
 overlap) used by stages 2 and 3.
@@ -47,6 +53,9 @@ python scripts/run_post_training_demo.py
 
 # Training — pretrain → anneal → SFT → generate (tiny CPU model, ~20s)
 python scripts/run_training_demo.py
+
+# Evaluation — HumanEval/MBPP Pass@1 harness self-test (oracle -> 1.000)
+python -m evaluation.cli --benchmark humaneval --oracle
 ```
 
 Stages 1–3 run **offline** on synthetic sample data. To go real:
