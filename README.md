@@ -86,8 +86,17 @@ python scripts/run_post_training_demo.py --teacher claude --cache-dir .teacher_c
 python scripts/run_post_training_demo.py --teacher vllm --model <served-model> --base-url http://localhost:8000/v1
 ```
 
+## Run on Kaggle (2×T4)
+
+[`notebooks/kaggle_train.ipynb`](notebooks/kaggle_train.ipynb) runs the whole
+project end to end on Kaggle's free **GPU T4 ×2**: install → data pipeline → BPE
+tokenizer → pretrain/anneal/SFT **data-parallel across both GPUs** → generate →
+Pass@1. Upload this repo as a Kaggle Dataset (or set a clone URL in the notebook),
+set the accelerator to *GPU T4 ×2*, and *Run All*. Regenerate it with
+`python scripts/make_kaggle_notebook.py`.
+
 ## Tests
 
 ```bash
-python -m unittest discover -s tests -v    # data_pipeline + annealing + sft
+python -m unittest discover -s tests -v    # data + training + eval + tokenizer (70 tests)
 ```
